@@ -1,0 +1,7 @@
+example-victim
+pkwned
+a.out
+*.o
+mypath.h
+gconv/gconv-modules
+gconv/*.so
