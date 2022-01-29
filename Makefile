@@ -1,4 +1,4 @@
-ALL = gconv/gconv-modules gconv/pwnie.so example-victim pkwned
+ALL = gconv/gconv-modules gconv/pwnie.so example-victim pkwned gconv-fuse
 EVERYTHING = $(ALL) mypath.h
 
 override CFLAGS += -std=c99
@@ -22,6 +22,9 @@ pkwned: constants.h pkwned.c
 
 example-victim: constants.h example-victim.c
 	$(CC) -o $@ $(CPPFLAGS) $(CFLAGS) example-victim.c
+
+gconv-fuse: constants.h gconv-fuse.c
+	$(CC) -o $@ $(CPPFLAGS) $(CFLAGS) gconv-fuse.c $$(pkg-config fuse --cflags --libs)
 
 clean:
 	rm -f *.o $(EVERYTHING) a.out
