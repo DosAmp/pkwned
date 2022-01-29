@@ -19,8 +19,13 @@ I found two approaches so far to prevent that:
 644	    goto out;
 645	  }
 
-* If pkexec can be prevented from reading /etc/shells through creative use of
-  mount namespaces, this will also error out without logging:
+  This repository contains the gconv-fuse utility that mounts a FUSE
+  filesystem over "GCONV_PATH=.", which appears empty after one call of
+  access("gconv", X_OK). It only works if the FUSE user_allow_other
+  configuration option is enabled.
+
+* If pkexec can be prevented from reading /etc/shells, this will also error
+  out without logging:
 
 356	if (!g_file_get_contents ("/etc/shells",
 357	                          &contents,
@@ -31,6 +36,10 @@ I found two approaches so far to prevent that:
 362	    g_error_free (error);
 363	    goto out;
 364	  }
+
+  Mount namespaces can be used to mount an unreadable file over it, but that
+  requires a user namespace as well, mapping an unprivileged user to root and
+  rendering pkexec's setuid bit ineffective (e.g. "unshare -r -u -m").
 
 Note that GLib has merged a fix for g_find_program_in_path (probably for next
 stable versions after v2.70.3 and v2.71.0) which will make this exploit
